@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native'
+import Svg, { Path } from 'react-native-svg'
 import { INPUT_BOTTOM_PADDING } from '../safeArea'
 import { pickFiles as defaultPickFiles } from '../filePicker'
 import type { ChatTheme } from '../theme'
@@ -121,7 +122,18 @@ export function MessageInput({ theme, isSending, onSend, onPickFiles, strings }:
           {picking ? (
             <ActivityIndicator color={theme.systemText} size="small" />
           ) : (
-            <Text style={[styles.attachIcon, { color: theme.primaryColor }]}>⊕</Text>
+            <Svg
+              width={20}
+              height={20}
+              viewBox="0 0 32 32"
+              fill="none"
+              stroke={theme.primaryColor}
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <Path d="M10 9 L10 24 C10 28 13 30 16 30 19 30 22 28 22 24 L22 6 C22 3 20 2 18 2 16 2 14 3 14 6 L14 23 C14 24 15 25 16 25 17 25 18 24 18 23 L18 9" />
+            </Svg>
           )}
         </TouchableOpacity>
 
@@ -244,10 +256,6 @@ const styles = StyleSheet.create({
     alignItems:   'center',
     justifyContent: 'center',
     flexShrink:   0,
-  },
-  attachIcon: {
-    fontSize:   22,
-    lineHeight: 24,
   },
   inputWrap: {
     flex:             1,
