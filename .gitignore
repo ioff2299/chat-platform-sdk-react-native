@@ -10,3 +10,6 @@ lib/
 
 # npm pack artifacts
 *.tgz
+
+# npm auth token — НИКОГДА не коммитить
+.npmrc

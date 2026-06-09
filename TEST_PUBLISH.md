@@ -18,11 +18,30 @@
 ## 1. Регистрация и токен (ручные шаги, нужен браузер)
 
 1. Зарегистрироваться на https://www.npmjs.com/signup
-2. Включить 2FA: Account → Two-Factor Authentication (требуется для publish).
-3. (Опционально, для CI) создать **Automation** access token:
-   Account → Access Tokens → Generate New Token → *Automation*.
+2. Включить 2FA один раз: Account → Two-Factor Authentication (приложение-аутентификатор).
+   npm сейчас требует 2FA, чтобы получить доступ к публикации/токенам — обойти на уровне
+   аккаунта нельзя, но **вводить код при каждой публикации не придётся** (см. ниже).
+3. Создать **Granular Access Token** с обходом 2FA:
+   Account → Access Tokens → Generate New Token → *Granular Access Token* →
+   включить **«Bypass two-factor authentication»**, дать **Read and write** на пакеты,
+   выбрать scope/пакет, задать срок (до 90 дней). Скопировать токен (показывается один раз).
 
 > Scope `@<твой-логин>` создаётся автоматически — отдельную организацию заводить не нужно.
+
+### Публикация без ввода 2FA-кода
+
+Положить токен в `.npmrc` (НЕ коммитить — он уже под `*.tgz`/секреты; см. п.0 ниже),
+тогда `npm publish` не будет спрашивать одноразовый код:
+
+```powershell
+# в корне репозитория, разово
+"//registry.npmjs.org/:_authToken=ВАШ_ТОКЕН" | Out-File -FilePath .npmrc -Encoding utf8 -Append
+```
+
+Добавь `.npmrc` в `.gitignore`, чтобы токен не попал в git.
+
+> Условие: на пакете не должна стоять политика «Require 2FA and disallow tokens».
+> Для нового пакета она по умолчанию выключена — ничего делать не нужно.
 
 ## 2. Тестовый GitHub-репозиторий (ручной шаг)
 
@@ -45,10 +64,13 @@ npm pack --dry-run                # проверить содержимое ар
 
 ## 4. Публикация
 
+С токеном из п.1 в `.npmrc` логиниться и вводить 2FA-код не нужно:
+
 ```powershell
-npm login                         # ввести логин/пароль/2FA
 npm publish --access public       # --access public обязателен для scoped-пакета
 ```
+
+> Без токена альтернатива — `npm login`, но тогда npm попросит одноразовый 2FA-код.
 
 После публикации проверить страницу на npmjs и установку в чистый RN-проект:
 
