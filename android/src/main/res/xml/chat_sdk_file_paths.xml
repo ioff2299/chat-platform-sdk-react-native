@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <cache-path name="chat_sdk_cache" path="." />
+    <files-path name="chat_sdk_files" path="." />
+    <external-files-path name="chat_sdk_external_files" path="." />
+    <external-cache-path name="chat_sdk_external_cache" path="." />
+</paths>
