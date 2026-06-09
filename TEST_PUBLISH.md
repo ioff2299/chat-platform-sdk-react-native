@@ -18,9 +18,17 @@
 ## 1. Регистрация и токен (ручные шаги, нужен браузер)
 
 1. Зарегистрироваться на https://www.npmjs.com/signup
-2. Включить 2FA один раз: Account → Two-Factor Authentication (приложение-аутентификатор).
-   npm сейчас требует 2FA, чтобы получить доступ к публикации/токенам — обойти на уровне
-   аккаунта нельзя, но **вводить код при каждой публикации не придётся** (см. ниже).
+2. Включить 2FA один раз: Account → Two-Factor Authentication.
+   ВАЖНО: с осени 2025 npm убрал TOTP (authenticator-приложения) для новых аккаунтов —
+   доступен только **passkey / security key (WebAuthn)**. Физический USB-ключ покупать
+   НЕ нужно, подойдёт любой из вариантов:
+   - **Windows Hello** (PIN / отпечаток / лицо) — пункт «password/PIN as a security key».
+     На системном окне выбрать «этот компьютер», НЕ «USB security key».
+   - **Passkey на телефоне** — браузер покажет QR, сканируешь телефоном, подтверждаешь биометрией.
+   - **Менеджер паролей** (1Password / Bitwarden / KeePassXC) — хранит passkey программно.
+
+   2FA на уровне аккаунта обойти нельзя, но **вводить что-либо при каждой публикации
+   не придётся** — публикация идёт через токен (см. ниже).
 3. Создать **Granular Access Token** с обходом 2FA:
    Account → Access Tokens → Generate New Token → *Granular Access Token* →
    включить **«Bypass two-factor authentication»**, дать **Read and write** на пакеты,
