@@ -1,6 +1,6 @@
 {
-  "name": "@YOUR_NPM_USERNAME/sdk-react-native",
-  "version": "0.1.0-beta.1",
+  "name": "@ion299/sdk-react-native",
+  "version": "0.1.0-beta.3",
   "description": "React Native SDK for Chat Platform",
   "main": "./lib/commonjs/index.js",
   "module": "./lib/module/index.js",
@@ -43,9 +43,24 @@
     "source": "src",
     "output": "lib",
     "targets": [
-      ["commonjs", { "esm": true }],
-      ["module", { "esm": true }],
-      ["typescript", { "project": "tsconfig.build.json" }]
+      [
+        "commonjs",
+        {
+          "esm": true
+        }
+      ],
+      [
+        "module",
+        {
+          "esm": true
+        }
+      ],
+      [
+        "typescript",
+        {
+          "project": "tsconfig.build.json"
+        }
+      ]
     ]
   },
   "peerDependencies": {
@@ -59,15 +74,11 @@
     "react-native-builder-bob": "^0.40.0",
     "del-cli": "^5.1.0"
   },
-  "keywords": ["chat", "sdk", "react-native"],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/YOUR_GITHUB_USERNAME/chat-platform-sdk-rn-test.git"
-  },
-  "homepage": "https://github.com/YOUR_GITHUB_USERNAME/chat-platform-sdk-rn-test#readme",
-  "bugs": {
-    "url": "https://github.com/YOUR_GITHUB_USERNAME/chat-platform-sdk-rn-test/issues"
-  },
+  "keywords": [
+    "chat",
+    "sdk",
+    "react-native"
+  ],
   "publishConfig": {
     "access": "public"
   },

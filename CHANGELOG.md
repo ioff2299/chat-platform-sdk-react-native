@@ -6,6 +6,18 @@
 
 ## [Unreleased]
 
+## [0.1.0-beta.3]
+
+### Fixed
+- Android: совместимость `ChatSdkFilePickerModule` с React Native 0.83 (Kotlin-база):
+  `currentActivity` → `getCurrentActivity()`, параметр `onActivityResult(activity:)`
+  сделан non-null. Раньше не компилировалось против RN 0.83.
+
+## [0.1.0-beta.2]
+
+### Changed
+- Убраны поля `repository`/`homepage`/`bugs` из `package.json` (тестовая публикация без GitHub-репо).
+
 ## [0.1.0-beta.1]
 
 ### Added

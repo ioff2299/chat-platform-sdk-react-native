@@ -30,7 +30,7 @@ class ChatSdkFilePickerModule(reactContext: ReactApplicationContext) :
 
     private val activityEventListener = object : BaseActivityEventListener() {
         override fun onActivityResult(
-            activity: Activity?,
+            activity: Activity,
             requestCode: Int,
             resultCode: Int,
             data: Intent?,
@@ -74,7 +74,7 @@ class ChatSdkFilePickerModule(reactContext: ReactApplicationContext) :
 
     @ReactMethod
     fun pick(options: ReadableMap, promise: Promise) {
-        val activity = currentActivity
+        val activity = getCurrentActivity()
         if (activity == null) {
             promise.reject("NO_ACTIVITY", "Нет активной Activity")
             return
