@@ -2,7 +2,7 @@
 
 React Native SDK для встройки чата в мобильное приложение.
 
-**Версия:** 0.1.0-beta.7
+**Версия:** 0.1.0-beta.8
 **JS-требования:** React Native ≥ 0.72, React ≥ 18.2
 **Нативные минимумы:** iOS 13.4, Android API 24 (Android 7.0)
 
@@ -220,24 +220,42 @@ unsubMessagesUpdated(); unsubConnected(); unsubError()
 кроссплатформенный способ доставить уведомление о сообщении оператора —
 **push (FCM / APNs)**. Есть два варианта интеграции.
 
-### Вариант A — `registerPushToken` (рекомендуется)
+ЧП сам шлёт FCM/APNs на зарегистрированные токены контакта — свой backend для
+доставки не нужен. `registerPushToken` — обёртка над
+`POST /api/mobile/{token}/contact/{contactId}/push-token`.
+Токен снимается автоматически в `logout()` (или вручную `unregisterPushToken()`).
 
-Хост-приложение получает **нативный** push-токен своим способом (под свой стек)
-и отдаёт его SDK. ЧП сам шлёт FCM/APNs на зарегистрированные токены контакта —
-свой backend не нужен. SDK **не зависит** от конкретного push-провайдера.
+### Вариант A — `registerPushToken()` без аргументов (рекомендуется)
+
+SDK сам достаёт нативный push-токен — **без `expo-notifications` и
+`@react-native-firebase/messaging` в приложении**:
 
 ```ts
 await ChatSDK.login(/* ... */)
+await ChatSDK.registerPushToken() // токен и platform SDK определит сам
+```
+
+- **Android** → FCM-токен через встроенный `firebase-messaging`. Нужен только
+  `google-services.json` в приложении + Gradle-плагин `com.google.gms.google-services`
+  (это конфиг-файл, не npm-пакет). На Android 13+ для показа уведомлений
+  запросите runtime-разрешение `POST_NOTIFICATIONS`.
+- **iOS** → «сырой» APNs device-token, **без Firebase и подов**. Нужна только
+  capability **Push Notifications** в Xcode. Разрешение на уведомления SDK
+  запрашивает сам при первом вызове.
+
+> Если нативный модуль недоступен (например, токен ещё не настроен в проекте),
+> вызов бросит ошибку — используйте Вариант B и передайте токен вручную.
+
+### Вариант B — передать токен вручную (свой push-стек)
+
+Если у вас уже есть Expo Notifications / RNFirebase / OneSignal — получите токен
+их способом и передайте строкой:
+
+```ts
 await ChatSDK.registerPushToken(deviceToken, platform) // platform: 'fcm' | 'apns'
 ```
 
-`platform`:
-- `'fcm'` — FCM registration token (Android всегда; iOS — если используете Firebase и на iOS);
-- `'apns'` — «сырой» APNs device-token (iOS без Firebase).
-
-Токен снимается автоматически в `logout()` (или вручную `unregisterPushToken()`).
-
-**Где взять токен — примеры под разные стеки:**
+`platform`: `'fcm'` — FCM registration token; `'apns'` — APNs device-token (iOS без Firebase).
 
 ```ts
 // Expo — getDevicePushTokenAsync() отдаёт НАТИВНЫЙ FCM/APNs токен
@@ -258,10 +276,9 @@ const fcmToken = await messaging().getToken()
 await ChatSDK.registerPushToken(fcmToken, 'fcm')
 ```
 
-> Нативные SDK (iOS/Android без RN) регистрируют токен тем же эндпоинтом —
-> `registerPushToken` лишь обёртка над `POST /api/mobile/{token}/contact/{contactId}/push-token`.
+> Нативные SDK (iOS/Android без RN) регистрируют токен тем же эндпоинтом.
 
-### Вариант B — webhook на свой backend
+### Вариант C — webhook на свой backend
 
 Если вы хотите управлять доставкой сами, ЧП может слать webhook
 `message.created` на ваш backend, а push вы шлёте уже своей инфраструктурой.
@@ -329,11 +346,12 @@ navigation.navigate('Chat')
 
 Завершает сессию, отключает realtime, снимает зарегистрированный push-токен.
 
-### `ChatSDK.registerPushToken(deviceToken, platform?)`
+### `ChatSDK.registerPushToken(deviceToken?, platform?)`
 
 Регистрирует push-токен устройства для фоновых уведомлений. Требует `login()`.
-`platform`: `'fcm'` (по умолчанию) или `'apns'`. Токен запоминается и снимается
-в `logout()`.
+Без аргументов SDK сам достаёт нативный токен (Android — FCM, iOS — APNs) и
+определяет `platform`. Можно передать токен вручную: `platform` — `'fcm'` или
+`'apns'` (по умолчанию выводится из ОС). Токен запоминается и снимается в `logout()`.
 
 ### `ChatSDK.unregisterPushToken(deviceToken?)`
 
@@ -362,7 +380,7 @@ navigation.navigate('Chat')
 - [ ] `ChatSDK.init(...)` в точке входа приложения
 - [ ] `ChatSDK.login(...)` после авторизации пользователя
 - [ ] `<ChatScreen />` в навигаторе
-- [ ] Push: получить нативный токен и вызвать `ChatSDK.registerPushToken(token, platform)` после `login()`
+- [ ] Push: вызвать `ChatSDK.registerPushToken()` после `login()` (Android: положить `google-services.json` + плагин; iOS: capability Push Notifications). Либо передать токен вручную своим стеком.
       (либо webhook на свой backend — вариант B)
 - [ ] `ChatSDK.handleNotification(...)` в обработчике тапа по push (`cp_token`, `cp_contact_id` в data payload)
 

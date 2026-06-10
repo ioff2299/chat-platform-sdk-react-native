@@ -1,5 +1,6 @@
 import { MobileApiClient } from './api'
 import { ChatSDKSession } from './session'
+import { getNativeDeviceToken, nativePushPlatform } from './native/NativeChatSdkPushToken'
 import type {
   ChatMessage,
   ChatOperator,
@@ -120,10 +121,12 @@ class ChatSDKSingleton {
 
   // ─── Push ─────────────────────────────────────────────────────────────────
     
-  async registerPushToken(deviceToken: string, platform: 'fcm' | 'apns' = 'fcm'): Promise<void> {
+  async registerPushToken(deviceToken?: string, platform?: 'fcm' | 'apns'): Promise<void> {
     this.assertInitialized()
-    await this.api!.registerPushToken(deviceToken, platform)
-    this.pushDeviceToken = deviceToken
+    const token = deviceToken ?? (await getNativeDeviceToken())
+    const resolvedPlatform = platform ?? nativePushPlatform()
+    await this.api!.registerPushToken(token, resolvedPlatform)
+    this.pushDeviceToken = token
   }
   
   async unregisterPushToken(deviceToken?: string): Promise<void> {

@@ -6,6 +6,23 @@
 
 ## [Unreleased]
 
+## [0.1.0-beta.8]
+
+### Added
+- `ChatSDK.registerPushToken()` теперь можно вызывать **без аргументов** — SDK
+  сам достаёт нативный push-токен устройства, приложению больше не нужны
+  `expo-notifications` / `@react-native-firebase/messaging`:
+  - Android — FCM-токен через встроенный `firebase-messaging` (нужен только
+    `google-services.json` в приложении);
+  - iOS — «сырой» APNs device-token без Firebase и подов; токен перехватывается
+    через swizzling `AppDelegate`, править `AppDelegate` приложению не нужно.
+- Нативный модуль `ChatSdkPushToken` (Android Kotlin / iOS Swift) + JS-мост.
+
+### Changed
+- Сигнатура `registerPushToken(deviceToken?, platform?)` — оба аргумента стали
+  опциональными; при ручной передаче `platform` по умолчанию выводится из ОС
+  (`apns` на iOS, `fcm` на Android). Обратная совместимость сохранена.
+
 ## [0.1.0-beta.7]
 
 ### Added

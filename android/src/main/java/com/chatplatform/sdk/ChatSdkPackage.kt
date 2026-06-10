@@ -10,6 +10,7 @@ class ChatSdkPackage : ReactPackage {
         ChatSdkFilePickerModule(reactContext),
         ChatSdkDownloaderModule(reactContext),
         ChatSdkAudioPlayerModule(reactContext),
+        ChatSdkPushTokenModule(reactContext),
     )
 
     override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> = emptyList()
