@@ -9,6 +9,7 @@ class ChatSdkPackage : ReactPackage {
     override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> = listOf(
         ChatSdkFilePickerModule(reactContext),
         ChatSdkDownloaderModule(reactContext),
+        ChatSdkAudioPlayerModule(reactContext),
     )
 
     override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> = emptyList()

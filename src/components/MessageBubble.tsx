@@ -1,6 +1,8 @@
 import React from 'react'
 import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { attachmentDisplayName } from '../attachmentUtils'
+import { audioController } from '../audio/audioController'
+import { AudioMessage } from './AudioMessage'
 import type { ChatAttachment, ChatButton, ChatMessage } from '../types'
 import type { ChatTheme } from '../theme'
 
@@ -121,6 +123,10 @@ function AttachmentView({
         />
       </TouchableOpacity>
     )
+  }
+
+  if (attachment.type === 'audio' && audioController.isAvailable) {
+    return <AudioMessage attachment={attachment} isOutbound={isOutbound} theme={theme} />
   }
 
   const nameColor = isOutbound ? theme.outboundText : theme.inboundText
