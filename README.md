@@ -215,11 +215,56 @@ unsubMessagesUpdated(); unsubConnected(); unsubError()
 
 ## Push-уведомления
 
-ЧП **не** шлёт FCM/APNs напрямую. Вместо этого ЧП отправляет webhook на ваш
-backend при новом сообщении от оператора. Ваш backend сам решает, кому и как
-доставить push.
+В фоне/закрытом приложении WebSocket гасит ОС — события туда не приходят
+(это ограничение iOS и Android, см. «Поведение в фоне»). Единственный
+кроссплатформенный способ доставить уведомление о сообщении оператора —
+**push (FCM / APNs)**. Есть два варианта интеграции.
 
-### Webhook payload
+### Вариант A — `registerPushToken` (рекомендуется)
+
+Хост-приложение получает **нативный** push-токен своим способом (под свой стек)
+и отдаёт его SDK. ЧП сам шлёт FCM/APNs на зарегистрированные токены контакта —
+свой backend не нужен. SDK **не зависит** от конкретного push-провайдера.
+
+```ts
+await ChatSDK.login(/* ... */)
+await ChatSDK.registerPushToken(deviceToken, platform) // platform: 'fcm' | 'apns'
+```
+
+`platform`:
+- `'fcm'` — FCM registration token (Android всегда; iOS — если используете Firebase и на iOS);
+- `'apns'` — «сырой» APNs device-token (iOS без Firebase).
+
+Токен снимается автоматически в `logout()` (или вручную `unregisterPushToken()`).
+
+**Где взять токен — примеры под разные стеки:**
+
+```ts
+// Expo — getDevicePushTokenAsync() отдаёт НАТИВНЫЙ FCM/APNs токен
+import * as Notifications from 'expo-notifications'
+import { Platform } from 'react-native'
+
+await Notifications.requestPermissionsAsync()
+const { data } = await Notifications.getDevicePushTokenAsync()
+await ChatSDK.registerPushToken(String(data), Platform.OS === 'ios' ? 'apns' : 'fcm')
+```
+
+```ts
+// Голый React Native — @react-native-firebase/messaging
+import messaging from '@react-native-firebase/messaging'
+
+await messaging().requestPermission()
+const fcmToken = await messaging().getToken()
+await ChatSDK.registerPushToken(fcmToken, 'fcm')
+```
+
+> Нативные SDK (iOS/Android без RN) регистрируют токен тем же эндпоинтом —
+> `registerPushToken` лишь обёртка над `POST /api/mobile/{token}/contact/{contactId}/push-token`.
+
+### Вариант B — webhook на свой backend
+
+Если вы хотите управлять доставкой сами, ЧП может слать webhook
+`message.created` на ваш backend, а push вы шлёте уже своей инфраструктурой.
 
 ```json
 {
@@ -238,12 +283,15 @@ backend при новом сообщении от оператора. Ваш bac
 
 Подпись: заголовок `X-Chat-Platform-Signature: sha256=HMAC_SHA256(body, webhook_secret)`.
 
-### Открытие чата из тапа по push
+### Приём push и открытие чата
+
+Сам push принимает **хост-приложение** (SDK не перехватывает уведомления).
+Распознать «наш» push и открыть чат на тап:
 
 ```tsx
 import { ChatSDK } from '@chat-platform/sdk-react-native'
 
-// В обработчике нотификации
+// В обработчике тапа по нотификации
 ChatSDK.handleNotification({
   token:     data.cp_token,
   contactId: data.cp_contact_id,
@@ -251,7 +299,7 @@ ChatSDK.handleNotification({
 navigation.navigate('Chat')
 ```
 
-Рекомендуемые data-ключи в payload FCM/APNs: `cp_token`, `cp_contact_id`.
+В data-payload push'а ЧП кладёт ключи `cp_token` и `cp_contact_id`.
 
 ---
 
@@ -279,7 +327,17 @@ navigation.navigate('Chat')
 
 ### `ChatSDK.logout()`
 
-Завершает сессию, отключает realtime.
+Завершает сессию, отключает realtime, снимает зарегистрированный push-токен.
+
+### `ChatSDK.registerPushToken(deviceToken, platform?)`
+
+Регистрирует push-токен устройства для фоновых уведомлений. Требует `login()`.
+`platform`: `'fcm'` (по умолчанию) или `'apns'`. Токен запоминается и снимается
+в `logout()`.
+
+### `ChatSDK.unregisterPushToken(deviceToken?)`
+
+Снимает регистрацию push-токена (по умолчанию — последнего зарегистрированного).
 
 ### `ChatSDK.handleNotification(payload)`
 
@@ -304,9 +362,9 @@ navigation.navigate('Chat')
 - [ ] `ChatSDK.init(...)` в точке входа приложения
 - [ ] `ChatSDK.login(...)` после авторизации пользователя
 - [ ] `<ChatScreen />` в навигаторе
-- [ ] Webhook URL в настройках виджета в ЧП
-- [ ] FCM/APNs: данные `cp_token`, `cp_contact_id` в data payload
-- [ ] `ChatSDK.handleNotification(...)` в обработчике push на стороне приложения
+- [ ] Push: получить нативный токен и вызвать `ChatSDK.registerPushToken(token, platform)` после `login()`
+      (либо webhook на свой backend — вариант B)
+- [ ] `ChatSDK.handleNotification(...)` в обработчике тапа по push (`cp_token`, `cp_contact_id` в data payload)
 
 ---
 

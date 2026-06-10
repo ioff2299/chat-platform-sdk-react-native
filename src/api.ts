@@ -146,6 +146,22 @@ export class MobileApiClient {
     )
   }
 
+  async registerPushToken(deviceToken: string, platform: 'fcm' | 'apns'): Promise<void> {
+    this.assertSession()
+    await this.post(
+      `/api/mobile/${this.token}/contact/${this.contactId}/push-token`,
+      { device_token: deviceToken, platform },
+    )
+  }
+
+  async deletePushToken(deviceToken: string): Promise<void> {
+    this.assertSession()
+    await this.del(
+      `/api/mobile/${this.token}/contact/${this.contactId}/push-token`,
+      { device_token: deviceToken },
+    )
+  }
+
   getDownloadUrl(contactId: string): string {
     return `${this.baseUrl}/api/mobile/${this.token}/contact/${contactId}/download`
   }
@@ -195,6 +211,27 @@ export class MobileApiClient {
       `${this.baseUrl}${path}`,
       {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          ...this.authHeaders(),
+        },
+        body: JSON.stringify(body),
+      },
+      timeoutMs,
+    )
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}))
+      throw new Error(json?.message ?? `HTTP ${res.status}`)
+    }
+    return res.json()
+  }
+
+  private async del(path: string, body: unknown, timeoutMs = 30_000): Promise<unknown> {
+    const res = await this.fetchWithTimeout(
+      `${this.baseUrl}${path}`,
+      {
+        method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',

@@ -35,6 +35,7 @@ class ChatSDKSingleton {
   private lastError: string | null = null
   private currentUser: ChatSDKUser | null = null
   private listeners: Map<EventName, Set<EventHandler>> = new Map()
+  private pushDeviceToken: string | null = null
 
   // ─── Lifecycle ────────────────────────────────────────────────────────────
 
@@ -109,6 +110,7 @@ class ChatSDKSingleton {
   }
 
   async logout(): Promise<void> {
+    await this.unregisterPushToken().catch(() => {})
     this.currentUser = null
     this.session?.destroy()
     this.session = null
@@ -117,12 +119,25 @@ class ChatSDKSingleton {
   }
 
   // ─── Push ─────────────────────────────────────────────────────────────────
+    
+  async registerPushToken(deviceToken: string, platform: 'fcm' | 'apns' = 'fcm'): Promise<void> {
+    this.assertInitialized()
+    await this.api!.registerPushToken(deviceToken, platform)
+    this.pushDeviceToken = deviceToken
+  }
+  
+  async unregisterPushToken(deviceToken?: string): Promise<void> {
+    const target = deviceToken ?? this.pushDeviceToken
+    if (!target || !this.api) return
+    try {
+      await this.api.deletePushToken(target)
+    } finally {
+      if (target === this.pushDeviceToken) this.pushDeviceToken = null
+    }
+  }
 
   handleNotification(_payload: NotificationPayload): void {
-    // Навигация обрабатывается в host app через onNotification callback.
-    // SDK только проверяет, что payload относится к нашему токену.
     if (_payload.token !== this.config?.token) return
-    // В будущем: открыть ChatScreen если приложение foreground
   }
 
   // ─── Getters ──────────────────────────────────────────────────────────────
