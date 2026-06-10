@@ -1,8 +1,8 @@
-# @chat-platform/sdk-react-native
+# @ion299/sdk-react-native
 
 React Native SDK для встройки чата в мобильное приложение.
 
-**Версия:** 0.1.0-beta.1
+**Версия:** 0.1.0-beta.7
 **JS-требования:** React Native ≥ 0.72, React ≥ 18.2
 **Нативные минимумы:** iOS 13.4, Android API 24 (Android 7.0)
 
@@ -15,10 +15,10 @@ React Native SDK для встройки чата в мобильное прил
 
 ```bash
 # npm
-npm install @chat-platform/sdk-react-native
+npm install @ion299/sdk-react-native
 
 # yarn
-yarn add @chat-platform/sdk-react-native
+yarn add @ion299/sdk-react-native
 ```
 
 После установки:
@@ -40,7 +40,7 @@ cd ios && pod install
 
 ```tsx
 // App.tsx
-import { ChatSDK } from '@chat-platform/sdk-react-native'
+import { ChatSDK } from '@ion299/sdk-react-native'
 
 ChatSDK.init({
   token:  'ВАШ_ТОКЕН_ИЗ_ЧП',  // универсальный токен (содержит widget token + baseUrl)
@@ -74,7 +74,7 @@ await ChatSDK.login(
 ### 3. Открыть чат
 
 ```tsx
-import { ChatScreen } from '@chat-platform/sdk-react-native'
+import { ChatScreen } from '@ion299/sdk-react-native'
 
 // В стеке навигации
 <Stack.Screen name="Chat" component={ChatScreen} />
@@ -289,7 +289,7 @@ await ChatSDK.registerPushToken(fcmToken, 'fcm')
 Распознать «наш» push и открыть чат на тап:
 
 ```tsx
-import { ChatSDK } from '@chat-platform/sdk-react-native'
+import { ChatSDK } from '@ion299/sdk-react-native'
 
 // В обработчике тапа по нотификации
 ChatSDK.handleNotification({
@@ -357,7 +357,7 @@ navigation.navigate('Chat')
 ## Чеклист интеграции
 
 - [ ] Получить `widget_token` и `baseUrl` от ЧП
-- [ ] `npm install @chat-platform/sdk-react-native` + `pod install` для iOS
+- [ ] `npm install @ion299/sdk-react-native` + `pod install` для iOS
 - [ ] Пересобрать нативную часть (Xcode / Android Studio)
 - [ ] `ChatSDK.init(...)` в точке входа приложения
 - [ ] `ChatSDK.login(...)` после авторизации пользователя
