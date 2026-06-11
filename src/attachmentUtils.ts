@@ -20,8 +20,8 @@ export function sanitizeFilename(name: string): string {
   return name.replace(/[/\\?%*:|"<>]/g, '_') || 'file'
 }
 
-const AUDIO_EXT = /\.(mp3|m4a|aac|ogg|oga|opus|wav|wave|flac|amr|weba)(\?|#|$)/i
-const VIDEO_EXT = /\.(mp4|mov|m4v|webm|mkv|avi|3gp|3gpp)(\?|#|$)/i
+const AUDIO_EXT = /\.(mp3|m4a|aac|ogg|oga|opus|wav|wave|flac|amr|weba|webm)(\?|#|$)/i
+const VIDEO_EXT = /\.(mp4|mov|m4v|mkv|avi|3gp|3gpp)(\?|#|$)/i
 const IMAGE_EXT = /\.(jpe?g|png|gif|webp|heic|heif|bmp)(\?|#|$)/i
 
 export function resolveAttachmentType(attachment: ChatAttachment): ChatAttachment['type'] {

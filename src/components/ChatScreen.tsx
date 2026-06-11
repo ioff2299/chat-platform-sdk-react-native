@@ -15,7 +15,7 @@ import { getAndroidStatusBarHeight } from '../safeArea'
 import { ChatSDK } from '../ChatSDK'
 import { buildTheme, type ChatTheme } from '../theme'
 import { useChat } from '../useChat'
-import type { AttachmentDownloadHandler } from '../attachmentUtils'
+import { resolveAttachmentType, type AttachmentDownloadHandler } from '../attachmentUtils'
 import { defaultAttachmentDownloader } from '../downloaders/defaultAttachmentDownloader'
 import type { AttachmentInput, ChatAttachment, ChatMessage, ChatStrings, GalleryAttachment } from '../types'
 import { MessageBubble } from './MessageBubble'
@@ -80,7 +80,7 @@ export function ChatScreen({
     () =>
       messages.flatMap((m) =>
         (m.attachments ?? [])
-          .filter((a) => a.id > 0)
+          .filter((a) => a.id > 0 && resolveAttachmentType(a) !== 'audio')
           .map((a): GalleryAttachment => ({ ...a, messageTime: m.time })),
       ),
     [messages],
