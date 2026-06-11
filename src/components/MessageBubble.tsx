@@ -1,6 +1,6 @@
 import React from 'react'
 import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import { attachmentDisplayName } from '../attachmentUtils'
+import { attachmentDisplayName, resolveAttachmentType } from '../attachmentUtils'
 import { audioController } from '../audio/audioController'
 import { AudioMessage } from './AudioMessage'
 import type { ChatAttachment, ChatButton, ChatMessage } from '../types'
@@ -113,7 +113,9 @@ function AttachmentView({
   theme: ChatTheme
   onPress?: () => void
 }) {
-  if (attachment.type === 'image') {
+  const resolvedType = resolveAttachmentType(attachment)
+
+  if (resolvedType === 'image') {
     return (
       <TouchableOpacity onPress={onPress} disabled={!onPress} activeOpacity={0.85}>
         <Image
@@ -125,7 +127,7 @@ function AttachmentView({
     )
   }
 
-  if (attachment.type === 'audio' && audioController.isAvailable) {
+  if (resolvedType === 'audio' && audioController.isAvailable) {
     return <AudioMessage attachment={attachment} isOutbound={isOutbound} theme={theme} />
   }
 

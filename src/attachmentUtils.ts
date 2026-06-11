@@ -20,6 +20,24 @@ export function sanitizeFilename(name: string): string {
   return name.replace(/[/\\?%*:|"<>]/g, '_') || 'file'
 }
 
+const AUDIO_EXT = /\.(mp3|m4a|aac|ogg|oga|opus|wav|wave|flac|amr|weba)(\?|#|$)/i
+const VIDEO_EXT = /\.(mp4|mov|m4v|webm|mkv|avi|3gp|3gpp)(\?|#|$)/i
+const IMAGE_EXT = /\.(jpe?g|png|gif|webp|heic|heif|bmp)(\?|#|$)/i
+
+export function resolveAttachmentType(attachment: ChatAttachment): ChatAttachment['type'] {
+  const mime = (attachment.mime ?? '').toLowerCase()
+  if (mime.startsWith('image/')) return 'image'
+  if (mime.startsWith('video/')) return 'video'
+  if (mime.startsWith('audio/')) return 'audio'
+
+  const name = `${attachment.filename ?? ''} ${attachment.url ?? ''}`
+  if (AUDIO_EXT.test(name)) return 'audio'
+  if (VIDEO_EXT.test(name)) return 'video'
+  if (IMAGE_EXT.test(name)) return 'image'
+
+  return attachment.type ?? 'document'
+}
+
 export interface AttachmentDownloadRequest {
   downloadUrl: string
   filename: string

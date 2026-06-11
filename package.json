@@ -1,6 +1,6 @@
 {
   "name": "@ion299/sdk-react-native",
-  "version": "0.1.0-beta.8",
+  "version": "0.1.0-beta.9",
   "description": "React Native SDK for Chat Platform",
   "main": "./lib/commonjs/index.js",
   "module": "./lib/module/index.js",
@@ -68,11 +68,11 @@
     "react-native": ">=0.72.0"
   },
   "devDependencies": {
-    "typescript": "^5.0.0",
     "@types/react": "^18.2.0",
     "@types/react-native": "^0.72.0",
+    "del-cli": "^5.1.0",
     "react-native-builder-bob": "^0.40.0",
-    "del-cli": "^5.1.0"
+    "typescript": "^5.0.0"
   },
   "keywords": [
     "chat",
