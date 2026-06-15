@@ -6,6 +6,17 @@
 
 ## [Unreleased]
 
+## [0.1.0-beta.11]
+
+### Fixed
+- iOS-сборка SDK больше не падает на компиляции Swift-модулей. В
+  `ios/ChatSdkFilePicker.swift` и `ios/ChatSdkPushToken.swift` отсутствовал
+  `import React`, из-за чего типы `RCTPromiseResolveBlock` /
+  `RCTPromiseRejectBlock` не находились в scope (ошибки
+  `cannot find type ... in scope`, `'@escaping' only applies to function types`,
+  `'nil' requires a contextual type`). Импорт добавлен; потребителям больше не
+  нужен `patch-package` как временный обход.
+
 ## [0.1.0-beta.10]
 
 ### Fixed

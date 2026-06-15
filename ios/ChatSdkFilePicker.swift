@@ -2,6 +2,7 @@ import Foundation
 import UIKit
 import MobileCoreServices
 import UniformTypeIdentifiers
+import React
 
 @objc(ChatSdkFilePicker)
 class ChatSdkFilePicker: NSObject {

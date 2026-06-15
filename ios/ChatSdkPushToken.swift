@@ -2,6 +2,7 @@ import Foundation
 import UIKit
 import UserNotifications
 import ObjectiveC
+import React
 
 @objc(ChatSdkPushToken)
 class ChatSdkPushToken: NSObject {
