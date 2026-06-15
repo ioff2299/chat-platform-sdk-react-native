@@ -88,14 +88,29 @@ export class MobileApiClient {
     this.assertSession()
     const url = `${this.baseUrl}/api/mobile/${this.token}/contact/${this.contactId}/messages`
 
+    try {
+      await this.postMessageForm(url, await this.buildMessageForm(text, files, false))
+    } catch (e) {
+      if (files && files.length > 0 && isFormDataPartError(e)) {
+        await this.postMessageForm(url, await this.buildMessageForm(text, files, true))
+      } else {
+        throw e
+      }
+    }
+  }
+
+  private async buildMessageForm(
+    text: string,
+    files: AttachmentInput[] | undefined,
+    asBlob: boolean,
+  ): Promise<FormData> {
     const form = new FormData()
     if (text.trim()) form.append('text', text)
 
     if (files && files.length > 0) {
-      files.forEach((f) =>
-        // React Native FormData принимает объект {uri, name, type} вместо File
-        form.append('files[]', { uri: f.uri, name: f.name, type: f.type } as unknown as Blob),
-      )
+      for (const f of files) {
+        await appendFile(form, f, asBlob)
+      }
     }
 
     if (this.userProfile.name)    form.append('name',    this.userProfile.name)
@@ -103,6 +118,10 @@ export class MobileApiClient {
     if (this.userProfile.email)   form.append('email',   this.userProfile.email)
     if (this.userProfile.phone)   form.append('phone',   this.userProfile.phone)
 
+    return form
+  }
+
+  private async postMessageForm(url: string, form: FormData): Promise<void> {
     const res = await fetch(url, {
       method: 'POST',
       headers: this.authHeaders(),
@@ -262,4 +281,40 @@ export class MobileApiClient {
       clearTimeout(timer)
     }
   }
+}
+
+async function appendFile(
+  form: FormData,
+  f: AttachmentInput,
+  asBlob: boolean,
+): Promise<void> {
+  let uri = (f.uri ?? '').trim()
+  if (!uri) return
+  if (uri.startsWith('/')) uri = `file://${uri}`
+  const name = f.name || 'file'
+  const type = f.type || 'application/octet-stream'
+
+  if (asBlob) {
+    const blob = await uriToBlob(uri)
+    const typed = blob.type === type ? blob : new Blob([blob], { type })
+    form.append('files[]', typed, name)
+  } else {
+    form.append('files[]', { uri, name, type } as unknown as Blob)
+  }
+}
+
+function uriToBlob(uri: string): Promise<Blob> {
+  return new Promise<Blob>((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.responseType = 'blob'
+    xhr.onload = () => resolve(xhr.response as Blob)
+    xhr.onerror = () => reject(new Error(`ChatSDK: не удалось прочитать файл ${uri}`))
+    xhr.open('GET', uri, true)
+    xhr.send(null)
+  })
+}
+
+function isFormDataPartError(e: unknown): boolean {
+  const msg = e instanceof Error ? e.message : String(e)
+  return /FormData ?Part|Format ?Data ?Part/i.test(msg)
 }
