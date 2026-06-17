@@ -8,6 +8,8 @@ export {
   MAX_ATTACHMENT_SIZE,
 } from './attachmentValidation'
 export type { AttachmentValidationResult } from './attachmentValidation'
+export { compressAttachments, isImageCompressorAvailable } from './imageCompressor'
+export type { CompressImageOptions } from './imageCompressor'
 export type { AttachmentDownloadHandler } from './attachmentUtils'
 export type { ChatTheme } from './theme'
 export type {

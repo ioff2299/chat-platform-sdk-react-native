@@ -8,6 +8,7 @@ import com.facebook.react.uimanager.ViewManager
 class ChatSdkPackage : ReactPackage {
     override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> = listOf(
         ChatSdkFilePickerModule(reactContext),
+        ChatSdkImageCompressorModule(reactContext),
         ChatSdkDownloaderModule(reactContext),
         ChatSdkAudioPlayerModule(reactContext),
         ChatSdkPushTokenModule(reactContext),
