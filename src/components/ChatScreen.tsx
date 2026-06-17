@@ -101,6 +101,10 @@ export function ChatScreen({
     }
   }, [messages.length])
 
+  const handleInputFocus = () => {
+    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 250)
+  }
+
   const headerContent = (
     <>
       {onClose && (
@@ -125,7 +129,7 @@ export function ChatScreen({
     <View style={[styles.root, { backgroundColor: theme.background }]}>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         {Platform.OS === 'ios' ? (
           <SafeAreaView style={{ backgroundColor: theme.headerBg }}>
@@ -194,6 +198,7 @@ export function ChatScreen({
           isSending={isSending}
           onSend={(text, files) => void sendMessage(text, files)}
           onPickFiles={onPickFiles}
+          onInputFocus={handleInputFocus}
           strings={t}
         />
       </KeyboardAvoidingView>

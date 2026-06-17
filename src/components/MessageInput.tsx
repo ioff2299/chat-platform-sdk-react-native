@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Image,
@@ -13,6 +13,7 @@ import {
 } from 'react-native'
 import { INPUT_BOTTOM_PADDING } from '../safeArea'
 import { pickFiles as defaultPickFiles } from '../filePicker'
+import { validateAttachments } from '../attachmentValidation'
 import type { ChatTheme } from '../theme'
 import type { AttachmentInput, ChatStrings } from '../types'
 
@@ -20,8 +21,8 @@ interface Props {
   theme: ChatTheme
   isSending: boolean
   onSend: (text: string, files: AttachmentInput[]) => void
-  /** Переопределяет встроенный пикер (@react-native-documents/picker). */
   onPickFiles?: () => Promise<AttachmentInput[] | null>
+  onInputFocus?: () => void
   strings?: Pick<ChatStrings, 'inputPlaceholder' | 'sendingText'>
 }
 
@@ -34,15 +35,28 @@ function docIcon(mime: string): string {
   return '📎'
 }
 
-export function MessageInput({ theme, isSending, onSend, onPickFiles, strings }: Props) {
+export function MessageInput({ theme, isSending, onSend, onPickFiles, onInputFocus, strings }: Props) {
   const [text, setText]       = useState('')
   const [files, setFiles]     = useState<AttachmentInput[]>([])
   const [picking, setPicking] = useState(false)
+  const [errors, setErrors]   = useState<string[]>([])
   const inputRef              = useRef<TextInput>(null)
+  const errorTimer            = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const canSend     = (text.trim().length > 0 || files.length > 0) && !isSending
   const placeholder = strings?.inputPlaceholder ?? 'Сообщение…'
   const picker      = onPickFiles ?? defaultPickFiles
+
+  const showErrors = (messages: string[]) => {
+    if (messages.length === 0) return
+    setErrors(messages)
+    if (errorTimer.current) clearTimeout(errorTimer.current)
+    errorTimer.current = setTimeout(() => setErrors([]), 4000)
+  }
+
+  useEffect(() => () => {
+    if (errorTimer.current) clearTimeout(errorTimer.current)
+  }, [])
 
   const handlePickFiles = async () => {
     if (picking) return
@@ -50,7 +64,11 @@ export function MessageInput({ theme, isSending, onSend, onPickFiles, strings }:
     try {
       const picked = await picker()
       if (picked && picked.length > 0) {
-        setFiles((prev) => [...prev, ...picked])
+        const { accepted, errors: validationErrors } = validateAttachments(picked)
+        if (accepted.length > 0) {
+          setFiles((prev) => [...prev, ...accepted])
+        }
+        showErrors(validationErrors)
       }
     } finally {
       setPicking(false)
@@ -80,6 +98,14 @@ export function MessageInput({ theme, isSending, onSend, onPickFiles, strings }:
         },
       ]}
     >
+      {errors.length > 0 && (
+        <View style={styles.errorsBox}>
+          {errors.map((err, i) => (
+            <Text key={i} style={styles.errorText}>{err}</Text>
+          ))}
+        </View>
+      )}
+
       {files.length > 0 && (
         <ScrollView
           horizontal
@@ -135,6 +161,7 @@ export function MessageInput({ theme, isSending, onSend, onPickFiles, strings }:
             maxLength={4000}
             value={text}
             onChangeText={setText}
+            onFocus={onInputFocus}
             onSubmitEditing={handleSend}
             returnKeyType="send"
             blurOnSubmit={false}
@@ -174,6 +201,17 @@ export function MessageInput({ theme, isSending, onSend, onPickFiles, strings }:
 const styles = StyleSheet.create({
   container: {
     borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  errorsBox: {
+    backgroundColor:   '#fff3f3',
+    paddingHorizontal: 14,
+    paddingVertical:   8,
+    gap:               4,
+  },
+  errorText: {
+    color:      '#cc2222',
+    fontSize:   12,
+    lineHeight: 16,
   },
   filesStrip: {
     maxHeight: 110,

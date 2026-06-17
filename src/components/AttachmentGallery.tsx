@@ -2,9 +2,11 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   Dimensions,
   FlatList,
   Modal,
+  PanResponder,
   Platform,
   SafeAreaView,
   StatusBar,
@@ -18,7 +20,10 @@ import { attachmentDisplayName, type AttachmentDownloadHandler } from '../attach
 import type { GalleryAttachment } from '../types'
 import type { ChatTheme } from '../theme'
 
-const { width: SW } = Dimensions.get('window')
+const { width: SW, height: SH } = Dimensions.get('window')
+
+const DISMISS_DISTANCE = 120
+const DISMISS_VELOCITY = 0.8
 
 interface Props {
   attachments: GalleryAttachment[]
@@ -83,11 +88,55 @@ export function AttachmentGallery({
 
   const current = attachments[currentIndex]
 
+  const translateY = useRef(new Animated.Value(0)).current
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+
+  const backdropOpacity = translateY.interpolate({
+    inputRange: [-SH, 0, SH],
+    outputRange: [0, 1, 0],
+    extrapolate: 'clamp',
+  })
+  const chromeOpacity = translateY.interpolate({
+    inputRange: [-DISMISS_DISTANCE, 0, DISMISS_DISTANCE],
+    outputRange: [0, 1, 0],
+    extrapolate: 'clamp',
+  })
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, g) =>
+        Math.abs(g.dy) > 12 && Math.abs(g.dy) > Math.abs(g.dx) * 1.5,
+      onPanResponderMove: (_, g) => translateY.setValue(g.dy),
+      onPanResponderRelease: (_, g) => {
+        const shouldClose =
+          Math.abs(g.dy) > DISMISS_DISTANCE || Math.abs(g.vy) > DISMISS_VELOCITY
+        if (shouldClose) {
+          Animated.timing(translateY, {
+            toValue: g.dy >= 0 ? SH : -SH,
+            duration: 200,
+            useNativeDriver: true,
+          }).start(() => onCloseRef.current())
+        } else {
+          Animated.spring(translateY, {
+            toValue: 0,
+            useNativeDriver: true,
+            bounciness: 0,
+          }).start()
+        }
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(translateY, { toValue: 0, useNativeDriver: true, bounciness: 0 }).start()
+      },
+    }),
+  ).current
+
   useEffect(() => {
     if (visible) {
       setCurrentIndex(initialIndex)
+      translateY.setValue(0)
     }
-  }, [visible, initialIndex])
+  }, [visible, initialIndex, translateY])
 
   const handleViewableChange = useCallback(
     ({ viewableItems }: { viewableItems: Array<{ index: number | null }> }) => {
@@ -128,27 +177,37 @@ export function AttachmentGallery({
   return (
     <Modal
       visible={visible}
-      transparent={false}
+      transparent
       animationType="fade"
       onRequestClose={onClose}
       statusBarTranslucent
     >
       <View style={styles.root}>
         {Platform.OS === 'android' && (
-          <StatusBar barStyle="light-content" backgroundColor="#000" translucent />
+          <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
         )}
 
-        <SafeAreaView style={styles.headerSafe}>
-          <View style={styles.header}>
-            <View style={styles.headerSide} />
-            <Text style={styles.counter}>{counterText}</Text>
-            <TouchableOpacity style={styles.closeBtn} onPress={onClose} hitSlop={12}>
-              <Text style={styles.closeIcon}>✕</Text>
-            </TouchableOpacity>
-          </View>
-        </SafeAreaView>
+        <Animated.View
+          style={[styles.backdrop, { opacity: backdropOpacity }]}
+          pointerEvents="none"
+        />
 
-        <View style={styles.listWrap}>
+        <Animated.View style={[styles.chrome, { opacity: chromeOpacity }]}>
+          <SafeAreaView style={styles.headerSafe}>
+            <View style={styles.header}>
+              <View style={styles.headerSide} />
+              <Text style={styles.counter}>{counterText}</Text>
+              <TouchableOpacity style={styles.closeBtn} onPress={onClose} hitSlop={12}>
+                <Text style={styles.closeIcon}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+        </Animated.View>
+
+        <Animated.View
+          style={[styles.listWrap, { transform: [{ translateY }] }]}
+          {...panResponder.panHandlers}
+        >
           <FlatList
             ref={listRef}
             data={attachments}
@@ -182,9 +241,10 @@ export function AttachmentGallery({
               <Text style={styles.navIcon}>›</Text>
             </TouchableOpacity>
           )}
-        </View>
+        </Animated.View>
 
         {current && (
+          <Animated.View style={{ opacity: chromeOpacity }}>
           <SafeAreaView style={styles.footerSafe}>
             <View style={styles.footer}>
               <View style={styles.meta}>
@@ -212,6 +272,7 @@ export function AttachmentGallery({
               </TouchableOpacity>
             </View>
           </SafeAreaView>
+          </Animated.View>
         )}
       </View>
     </Modal>
@@ -250,7 +311,14 @@ const slide = StyleSheet.create({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+    backgroundColor: 'transparent',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: '#000',
+  },
+  chrome: {
+    zIndex: 2,
   },
   headerSafe: {
     backgroundColor: 'rgba(0,0,0,0.85)',

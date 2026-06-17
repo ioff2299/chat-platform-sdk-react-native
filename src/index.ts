@@ -2,6 +2,12 @@ export { ChatSDK } from './ChatSDK'
 
 export { ChatScreen } from './components/ChatScreen'
 export { useChat } from './useChat'
+export {
+  validateAttachments,
+  isAllowedAttachment,
+  MAX_ATTACHMENT_SIZE,
+} from './attachmentValidation'
+export type { AttachmentValidationResult } from './attachmentValidation'
 export type { AttachmentDownloadHandler } from './attachmentUtils'
 export type { ChatTheme } from './theme'
 export type {

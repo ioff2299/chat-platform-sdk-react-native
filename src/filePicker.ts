@@ -10,7 +10,7 @@ export async function pickFiles(): Promise<AttachmentInput[] | null> {
     )
   }
 
-  const picked = await FilePicker.pick({ multiple: true })
+  const picked = await FilePicker.pick({ multiple: true, mimeFilter: ['image/*', 'text/*'] })
   if (!picked || picked.length === 0) return null
 
   return picked.map((f) => ({
