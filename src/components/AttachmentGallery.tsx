@@ -4,7 +4,6 @@ import {
   Alert,
   Animated,
   Dimensions,
-  FlatList,
   Modal,
   PanResponder,
   Platform,
@@ -24,6 +23,10 @@ const { width: SW, height: SH } = Dimensions.get('window')
 
 const DISMISS_DISTANCE = 120
 const DISMISS_VELOCITY = 0.8
+const PAGE_DISTANCE = SW / 4
+const PAGE_VELOCITY = 0.3
+const AXIS_LOCK = 6
+const EDGE_RESISTANCE = 0.3
 
 interface Props {
   attachments: GalleryAttachment[]
@@ -82,13 +85,21 @@ export function AttachmentGallery({
   onDownloadAttachment,
   theme,
 }: Props) {
-  const listRef = useRef<FlatList<GalleryAttachment>>(null)
   const [currentIndex, setCurrentIndex] = useState(initialIndex)
   const [isDownloading, setIsDownloading] = useState(false)
 
+  const count = attachments.length
   const current = attachments[currentIndex]
 
+  const translateX = useRef(new Animated.Value(-initialIndex * SW)).current
   const translateY = useRef(new Animated.Value(0)).current
+
+  const indexRef = useRef(initialIndex)
+  const startXRef = useRef(-initialIndex * SW)
+  const axisRef = useRef<'x' | 'y' | null>(null)
+  const countRef = useRef(count)
+  countRef.current = count
+
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
 
@@ -103,58 +114,119 @@ export function AttachmentGallery({
     extrapolate: 'clamp',
   })
 
+  const goTo = useCallback(
+    (index: number, animated = true) => {
+      const clamped = Math.max(0, Math.min(index, countRef.current - 1))
+      indexRef.current = clamped
+      setCurrentIndex(clamped)
+      const toValue = -clamped * SW
+      if (animated) {
+        Animated.timing(translateX, {
+          toValue,
+          duration: 200,
+          useNativeDriver: false,
+        }).start()
+      } else {
+        translateX.setValue(toValue)
+      }
+    },
+    [translateX],
+  )
+
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, g) =>
-        Math.abs(g.dy) > 12 && Math.abs(g.dy) > Math.abs(g.dx) * 1.5,
-      onMoveShouldSetPanResponderCapture: (_, g) =>
-        Math.abs(g.dy) > 12 && Math.abs(g.dy) > Math.abs(g.dx) * 1.5,
-      onPanResponderMove: (_, g) => translateY.setValue(g.dy),
-      onPanResponderRelease: (_, g) => {
-        const shouldClose =
-          Math.abs(g.dy) > DISMISS_DISTANCE || Math.abs(g.vy) > DISMISS_VELOCITY
-        if (shouldClose) {
-          Animated.timing(translateY, {
-            toValue: g.dy >= 0 ? SH : -SH,
-            duration: 200,
-            useNativeDriver: true,
-          }).start(() => onCloseRef.current())
-        } else {
-          Animated.spring(translateY, {
-            toValue: 0,
-            useNativeDriver: true,
-            bounciness: 0,
-          }).start()
+      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponderCapture: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponderCapture: () => true,
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderGrant: () => {
+        axisRef.current = null
+        startXRef.current = -indexRef.current * SW
+        translateY.setValue(0)
+      },
+      onPanResponderMove: (_, g) => {
+        if (!axisRef.current) {
+          if (Math.abs(g.dx) < AXIS_LOCK && Math.abs(g.dy) < AXIS_LOCK) return
+          axisRef.current = Math.abs(g.dy) > Math.abs(g.dx) ? 'y' : 'x'
         }
+        if (axisRef.current === 'y') {
+          translateY.setValue(g.dy)
+          return
+        }
+        const minX = -(countRef.current - 1) * SW
+        const maxX = 0
+        let x = startXRef.current + g.dx
+        if (x > maxX) x = maxX + (x - maxX) * EDGE_RESISTANCE
+        else if (x < minX) x = minX + (x - minX) * EDGE_RESISTANCE
+        translateX.setValue(x)
+      },
+      onPanResponderRelease: (_, g) => {
+        const axis = axisRef.current
+        axisRef.current = null
+
+        if (axis === 'y') {
+          const shouldClose =
+            Math.abs(g.dy) > DISMISS_DISTANCE || Math.abs(g.vy) > DISMISS_VELOCITY
+          if (shouldClose) {
+            Animated.timing(translateY, {
+              toValue: g.dy >= 0 ? SH : -SH,
+              duration: 200,
+              useNativeDriver: false,
+            }).start(() => onCloseRef.current())
+          } else {
+            Animated.spring(translateY, {
+              toValue: 0,
+              useNativeDriver: false,
+              bounciness: 0,
+            }).start()
+          }
+          return
+        }
+
+        if (axis === 'x') {
+          let target = indexRef.current
+          if (
+            (g.dx < -PAGE_DISTANCE || g.vx < -PAGE_VELOCITY) &&
+            indexRef.current < countRef.current - 1
+          ) {
+            target = indexRef.current + 1
+          } else if (
+            (g.dx > PAGE_DISTANCE || g.vx > PAGE_VELOCITY) &&
+            indexRef.current > 0
+          ) {
+            target = indexRef.current - 1
+          }
+          goTo(target)
+          return
+        }
+
+        translateY.setValue(0)
       },
       onPanResponderTerminate: () => {
-        Animated.spring(translateY, { toValue: 0, useNativeDriver: true, bounciness: 0 }).start()
+        axisRef.current = null
+        Animated.spring(translateY, {
+          toValue: 0,
+          useNativeDriver: false,
+          bounciness: 0,
+        }).start()
+        Animated.timing(translateX, {
+          toValue: -indexRef.current * SW,
+          duration: 150,
+          useNativeDriver: false,
+        }).start()
       },
     }),
   ).current
 
   useEffect(() => {
     if (visible) {
+      indexRef.current = initialIndex
       setCurrentIndex(initialIndex)
+      translateX.setValue(-initialIndex * SW)
       translateY.setValue(0)
     }
-  }, [visible, initialIndex, translateY])
-
-  const handleViewableChange = useCallback(
-    ({ viewableItems }: { viewableItems: Array<{ index: number | null }> }) => {
-      if (viewableItems[0]?.index != null) {
-        setCurrentIndex(viewableItems[0].index)
-      }
-    },
-    [],
-  )
-
-  const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 })
-
-  const scrollTo = (index: number) => {
-    listRef.current?.scrollToIndex({ index, animated: true })
-    setCurrentIndex(index)
-  }
+  }, [visible, initialIndex, translateX, translateY])
 
   const handleDownload = async () => {
     if (!current || isDownloading) return
@@ -170,11 +242,7 @@ export function AttachmentGallery({
     }
   }
 
-  const renderItem = ({ item, index }: { item: GalleryAttachment; index: number }) => (
-    <GallerySlide item={item} isVisible={index === currentIndex} />
-  )
-
-  const counterText = attachments.length > 1 ? `${currentIndex + 1} / ${attachments.length}` : ''
+  const counterText = count > 1 ? `${currentIndex + 1} / ${count}` : ''
 
   return (
     <Modal
@@ -207,46 +275,42 @@ export function AttachmentGallery({
         </Animated.View>
 
         <Animated.View
-          style={[styles.listWrap, { transform: [{ translateY }] }]}
+          style={[
+            styles.strip,
+            { width: SW * Math.max(count, 1), transform: [{ translateX }, { translateY }] },
+          ]}
           {...panResponder.panHandlers}
         >
-          <FlatList
-            ref={listRef}
-            data={attachments}
-            keyExtractor={(a) => String(a.id)}
-            renderItem={renderItem}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            initialScrollIndex={initialIndex}
-            getItemLayout={(_, index) => ({ length: SW, offset: SW * index, index })}
-            onViewableItemsChanged={handleViewableChange}
-            viewabilityConfig={viewabilityConfig.current}
-            style={styles.list}
-          />
-
-          {attachments.length > 1 && currentIndex > 0 && (
-            <TouchableOpacity
-              style={[styles.navBtn, styles.navLeft]}
-              onPress={() => scrollTo(currentIndex - 1)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.navIcon}>‹</Text>
-            </TouchableOpacity>
-          )}
-          {attachments.length > 1 && currentIndex < attachments.length - 1 && (
-            <TouchableOpacity
-              style={[styles.navBtn, styles.navRight]}
-              onPress={() => scrollTo(currentIndex + 1)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.navIcon}>›</Text>
-            </TouchableOpacity>
-          )}
+          {attachments.map((item, index) => (
+            <View key={String(item.id)} style={styles.page}>
+              <GallerySlide item={item} isVisible={index === currentIndex} />
+            </View>
+          ))}
         </Animated.View>
 
+        {count > 1 && currentIndex > 0 && (
+          <TouchableOpacity
+            style={[styles.navBtn, styles.navLeft]}
+            onPress={() => goTo(currentIndex - 1)}
+            activeOpacity={0.7}
+            hitSlop={8}
+          >
+            <Text style={styles.navIcon}>‹</Text>
+          </TouchableOpacity>
+        )}
+        {count > 1 && currentIndex < count - 1 && (
+          <TouchableOpacity
+            style={[styles.navBtn, styles.navRight]}
+            onPress={() => goTo(currentIndex + 1)}
+            activeOpacity={0.7}
+            hitSlop={8}
+          >
+            <Text style={styles.navIcon}>›</Text>
+          </TouchableOpacity>
+        )}
+
         {current && (
-          <Animated.View style={{ opacity: chromeOpacity }}>
+          <Animated.View style={[styles.footerChrome, { opacity: chromeOpacity }]}>
           <SafeAreaView style={styles.footerSafe}>
             <View style={styles.footer}>
               <View style={styles.meta}>
@@ -358,22 +422,30 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 20,
   },
-  listWrap: {
-    flex: 1,
-  },
-  list: {
-    flex: 1,
-  },
-  navBtn: {
+  strip: {
     position: 'absolute',
     top: 0,
     bottom: 0,
+    left: 0,
+    flexDirection: 'row',
+    zIndex: 1,
+  },
+  page: {
+    width: SW,
+    height: '100%',
+  },
+  navBtn: {
+    position: 'absolute',
+    top: '50%',
+    marginTop: -28,
     width: 56,
+    height: 56,
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 3,
   },
-  navLeft: { left: 0 },
-  navRight: { right: 0 },
+  navLeft: { left: 4 },
+  navRight: { right: 4 },
   navIcon: {
     color: '#fff',
     fontSize: 40,
@@ -381,6 +453,13 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 6,
+  },
+  footerChrome: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 2,
   },
   footerSafe: {
     backgroundColor: 'rgba(0,0,0,0.9)',
