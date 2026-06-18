@@ -107,6 +107,8 @@ export function AttachmentGallery({
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, g) =>
         Math.abs(g.dy) > 12 && Math.abs(g.dy) > Math.abs(g.dx) * 1.5,
+      onMoveShouldSetPanResponderCapture: (_, g) =>
+        Math.abs(g.dy) > 12 && Math.abs(g.dy) > Math.abs(g.dx) * 1.5,
       onPanResponderMove: (_, g) => translateY.setValue(g.dy),
       onPanResponderRelease: (_, g) => {
         const shouldClose =

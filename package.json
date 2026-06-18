@@ -1,6 +1,6 @@
 {
   "name": "@ion299/sdk-react-native",
-  "version": "0.1.0-beta.14",
+  "version": "0.1.0-beta.15",
   "description": "React Native SDK for Chat Platform",
   "main": "./lib/commonjs/index.js",
   "module": "./lib/module/index.js",
